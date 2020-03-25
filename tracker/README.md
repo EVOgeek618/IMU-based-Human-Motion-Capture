@@ -2,15 +2,15 @@
 
 К сожалению, большинство библиотек не были обновлены для ROS Melodic, предназначенной для Ubuntu 18.04, поэтому при начале работы с этой библиотекой возникнут определенные трудности. Я попытаюсь детально описать шаги, которые необходимо сделать для начала работы, а также трудности, с которыми я встретился, и как я с ними справился.
 
-Эти команды устанавливают необходимые пакеты и драйверы:
+**Эти команды устанавливают необходимые пакеты и драйверы:**
 sudo apt-get install git build-essential python libusb-1.0-0-dev freeglut3-dev openjdk-8-jdk
 sudo apt-get install doxygen graphviz mono-complete
 
-Создаем директорию, в которой мы будем собирать и устанавливать остальные пакеты:
+**Создаем директорию, в которой мы будем собирать и устанавливать остальные пакеты:**
 cd ~/
 mkdir kinect
 
-Установка OpenNI:
+**Установка OpenNI:**
 cd ~/kinect
 git clone https://github.com/OpenNI/OpenNI.git
 cd OpenNI
@@ -18,7 +18,7 @@ git checkout Unstable-1.5.4.0
 cd Platform/Linux/CreateRedist
 chmod +x RedistMaker
 
-***Следующий шаг у меня вызвал проблемы, поэтому сначала путь их решения***
+_Следующий шаг у меня вызвал проблемы, поэтому сначала путь их решения_
 Пакет старый, поэтому на современных компиляторах gcc и g++ 7.0 выдает ошибку при сборке. Решить эту проблему поможет установка и временный переход на gcc и g++ 4.8:
 sudo apt-get install gcc-4.8
 sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 40
@@ -34,17 +34,17 @@ sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 30
 sudo update-alternatives --config g++
 И опять выбираем компилятор версии 4.8, нажав необходимую клавишу.
 
-***Обойдя проблемы с компилятором, можно продолжить сборку***
+**Обойдя проблемы с компилятором, можно продолжить сборку**
 ./RedistMaker
 cd ../Redist/OpenNI-Bin-Dev-Linux-[xxx]  
 (где [xxx] это ваша архитекутра и номер релиза OpenNI)
 sudo ./install.sh
 
-После установки OpenNI не забудьте вновь выбрать последние версии gcc и g++, иначе у вас возникнут проблемы со сборкой всего:
+_После установки OpenNI не забудьте вновь выбрать последние версии gcc и g++, иначе у вас возникнут проблемы со сборкой всего:_
 sudo update-alternatives --config gcc
 sudo update-alternatives --config g++
 
-Установка SensorKinect:
+**Установка SensorKinect:**
 cd ~/kinect
 git clone https://github.com/avin2/SensorKinect
 cd SensorKinect
@@ -56,9 +56,9 @@ cd ../Redist/Sensor-Bin-Linux-[xxx]
 
 chmod +x install.sh
 sudo ./install.sh
-ОСТОРОЖНО: Во избежание проблем не стоит устанавливать это больше одного раза. Если нужно что-то изменить, то перейдите в директорию ./install и запустите sudo ./install.sh -u
+_ОСТОРОЖНО: Во избежание проблем не стоит устанавливать это больше одного раза. Если нужно что-то изменить, то перейдите в директорию ./install и запустите sudo ./install.sh -u_
 
-Установка NITE:
+**Установка NITE:**
 cd ~/kinect
 git clone https://github.com/arnaud-ramey/NITE-Bin-Dev-Linux-v1.5.2.23
 cd NITE-Bin-Dev-Linux-v1.5.2.23/[xxx]
@@ -66,17 +66,17 @@ cd NITE-Bin-Dev-Linux-v1.5.2.23/[xxx]
 
 sudo ./install.sh
 
-Установка библиотек для ROS:
+**Установка библиотек для ROS:**
 sudo apt-get install ros-melodic-openni-launch ros-melodic-openni-launch
 
-Сборка и установка openni_tracker:
+**Сборка и установка openni_tracker:**
 cd ~/catkin_ws/src
 git clone https://github.com/ros-drivers/openni_tracker.git
 cd ~/catkin_ws
 catkin_make
 catkin_make install
 
-Запуск осуществляется командами:
+**Запуск осуществляется командами:**
 roscore
 roslaunch openni_launch openni.launch
 rosrun openni_tracker openni_tracker
