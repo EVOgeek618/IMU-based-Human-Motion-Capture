@@ -144,7 +144,7 @@ roslaunch openni_launch openni.launch
 
 rosrun openni_tracker openni_tracker
 
-_**Альтернитва запуска**_
+_**Альтернатива запуска**_
 
 Используйте скрипт write.sh:
 
