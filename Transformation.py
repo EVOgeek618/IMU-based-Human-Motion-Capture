@@ -6,7 +6,7 @@ import numpy
 
 #Reading data from Kinect
 lis=[]
-f = open('Data.txt', 'r')
+f = open('DataKinect.txt', 'r')
 lis=f.readlines()
 f.close()
 
