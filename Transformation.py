@@ -19,6 +19,7 @@ KinectQuats = []
 KinectPoints = []
 KinectTrans = []
 KinectTimes = []
+KinectFrames = []
 for i in range(len(lis)):
     lis[i]=lis[i].split(',')
     #Finding quaternion and rotation matrix
@@ -37,7 +38,7 @@ for i in range(len(lis)):
     KinectPoints.append(point)
     KinectTrans.append(T)
     KinectTimes.append(t)
-
+    KinectFrames.append(lis[i][8].split(' ')[1].strip('"'))
 #Readind data from sensors
 IMU=[]
 with open('getData.txt','r') as f:
@@ -61,9 +62,13 @@ for i in range(len(IMU)):
     #Finding the closest original point and translation matrix
     while KinectTimes[k] < t:
         k = k + 1
-    if abs(t-KinectTimes[k+1]) < abs(t-KinectTimes[k]): 
-        k = k + 1  
+    while KinectFrames[k] != 'left_elbow_1':
+        k = k - 1
+    if (k+15) < len(KinectTimes):
+        if abs(t-KinectTimes[k+15]) < abs(t-KinectTimes[k]): 
+            k = k + 15  
     point = KinectPoints[k]
+    #print(k)
     Trans = tf.transformations.translation_matrix(point)
     #Combining matrices into translation matrix
     T = numpy.dot(Trans,R)
@@ -80,21 +85,19 @@ br = tf.TransformBroadcaster()
 
 j = 0
 k = 0
-for i in range(len(lis)+len(IMU)):
-    if IMUTimes[j] < KinectTimes[k]:
-        br.sendTransform(IMUPoints[j], IMUQuats[j], IMUTimes[j], 'right_elbow_IMU', 'fixed_frame')
-        #print(IMUTrans[j])
+for i in range(len(lis)+len(IMU)-2):
+    if (IMUTimes[j] <= KinectTimes[k] or k == (len(lis)-1)) and j != (len(IMU)-1):
+        br.sendTransform(IMUPoints[j], IMUQuats[j], IMUTimes[j], 'IMU', 'map')
         print('IMU')
         if j < (len(IMU)-1):
             j = j+1
-        rospy.Rate(10).sleep()
-    else:
-        br.sendTransform(KinectPoints[k], KinectQuats[k], KinectTimes[k], 'right_elbow_Kinect', 'fixed_frame')
-        #print(KinectTrans[k])
+    elif (IMUTimes[j] > KinectTimes[k] or j == (len(IMU)-1)) and k != (len(lis)-1):
+        br.sendTransform(KinectPoints[k], KinectQuats[k], KinectTimes[k], KinectFrames[k], 'map')
         print('Kinect')
         if k < (len(lis)-1):
             k = k+1
-        rospy.Rate(10).sleep()
+    rospy.Rate(100).sleep()
+
     
 
     
