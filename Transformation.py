@@ -49,13 +49,30 @@ IMUQuats = []
 IMUPoints = []
 IMUTrans = []
 IMUTimes = []
-k = 0
+
+p = 0
+line0 = IMU[0].split(' ')
+rot = line0[0:-1]
+quat = (float(rot[0][3:]),float(rot[1]),float(rot[2]),float(rot[3][:-4]))
+R = tf.transformations.quaternion_matrix(quat)
+Rinv = numpy.linalg.inv(R)
+time = float(line0[-1]) - intime
+t = rospy.Time.from_sec(time)
+while KinectTimes[p] < t:
+    p = p + 1
+while KinectFrames[p] != 'left_elbow_1':
+    p = p - 1
+RotKin = tf.transformations.quaternion_matrix(KinectQuats[p])
+initrot = numpy.dot(Rinv, RotKin)
+
+k=0
 for i in range(len(IMU)):
     line = IMU[i].split(' ')
     rot = line[0:-1]
     #Finding quaternion and rotation matrix
     quat = (float(rot[0][3:]),float(rot[1]),float(rot[2]),float(rot[3][:-4]))
-    R = tf.transformations.quaternion_matrix(quat)
+    RIMU = tf.transformations.quaternion_matrix(quat)
+    R = numpy.dot(RIMU, initrot)
     #Time
     time = float(line[-1]) - intime
     t = rospy.Time.from_sec(time)
@@ -68,7 +85,6 @@ for i in range(len(IMU)):
         if abs(t-KinectTimes[k+15]) < abs(t-KinectTimes[k]): 
             k = k + 15  
     point = KinectPoints[k]
-    #print(k)
     Trans = tf.transformations.translation_matrix(point)
     #Combining matrices into translation matrix
     T = numpy.dot(Trans,R)
@@ -97,7 +113,6 @@ for i in range(len(lis)+len(IMU)-2):
         if k < (len(lis)-1):
             k = k+1
     rospy.Rate(100).sleep()
-
     
 
     
