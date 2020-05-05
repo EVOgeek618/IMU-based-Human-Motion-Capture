@@ -10,8 +10,8 @@ intime = float(lis0[7])
 
 
 IMUs = {
-    'neck':['head_1', 'neck_1'],
-    'tors':['neck_1', 'torso_1'],
+    'neck':['neck_1', 'head_1'],
+    'tors':['torso_1', 'neck_1'],
     'larm':['left_shoulder_1', 'left_elbow_1'],
     'lforearm':['left_elbow_1', 'left_hand_1'],
     'rarm':['right_shoulder_1', 'right_elbow_1'],
@@ -30,7 +30,7 @@ length = dict.fromkeys(IMUs.keys())
 del length['lfoot']
 del length['rfoot']
 
-desiredrot = [[-1,0,0],[0,-1,0],[0,0,1]]
+desiredrot = [[-1,0,0],[0,-1,0],[0,0,-1]]
 initrots = dict.fromkeys(IMUs.keys())
 for i in IMUs:
     IMU=[]
@@ -55,15 +55,66 @@ for i in IMUs:
     R = tf.transformations.quaternion_matrix(quat)
     Rinv = numpy.linalg.inv(R)
     initrots[i] = numpy.dot(Rinv, desiredrot)
-    
+for frame in initstates:
+    point = lis[initstates[frame]].split(',')
+    initstates[frame] = [-float(pont[4]), -float(point[5]), -float(point[6])]
 for i in length:
-    first = initstates[i][0]
-    second = initstates[i][1]
-    firstx = float(lis[first].split(',')[4])
-    firsty = float(lis[first].split(',')[5])
-    firstz = float(lis[first].split(',')[6])
-    secondx = float(lis[second].split(',')[4])
-    secondy = float(lis[second].split(',')[5])
-    secondz = float(lis[second].split(',')[6])
-    length[i] = math.sqrt((firstx - secondx) ** 2 + (firsty - secondy) ** 2 +(firstz - secondz) ** 2)
+    first = IMUs[i][0]
+    second = IMUs[i][1]
+    firstx = initstates[first][0]
+    firsty = initstates[first][1]
+    firstz = initstates[first][2]
+    secondx = initstates[second][0]
+    secondy = initstates[second][1]
+    secondz = initstates[second][2]
+    length[i] = [(firstx - secondx), (firsty - secondy), (firstz - secondz)]
+
+#Нужно экспортировать отсюда length, initrots, IMUs, initstates, и все, что ниже, закинуть в другой файл
+IMUQuats = dict.fromkeys(IMUs.keys())
+IMURots = dict.fromkeys(IMUs.keys())
+IMUTimes = dict.fromkeys(IMUs.keys())
+exptwists = dict.fromkeys(IMUs.keys())
+
+#Сделать иерархию, как граф с весами, и матрицы начальных состоятий относительно друг друга
+
+for i in IMUs:
+    IMU=[]
+    with open((i + '.txt'),'r') as f:
+        IMU=f.readlines()
+    IMUQuats[i] = []
+    IMURots[i] = []
+    IMUTimes[i] = []
+    for j in range(len(IMU)):
+        line = IMU[j].split(' ')
+        rot = line[0:-1]
+        #Finding quaternion and rotation matrix
+        quat = (float(rot[0][3:]),float(rot[1]),float(rot[2]),float(rot[3][:-4]))
+        RIMU = tf.transformations.quaternion_matrix(quat)
+        R = numpy.dot(RIMU, initrots[i])
+        #Time
+        time = float(line[-1]) - intime
+        t = rospy.Time.from_sec(time)
+        IMUQuats[i].append(quat) 
+        IMURots[i].append(R)
+        IMUTimes[i].append(t)
     
+    exptwists[i] = []
+
+    for j in range(len(IMURots[i]) - 1):
+        q1 = tf.transformations.quaternion_from_matrix(IMURots[i][j])
+        q2 = tf.transformations.quaternion_from_matrix(IMURots[i][j+1])
+        q = q2*tf.transformations.quaternion_conjugate(q1)
+        len = math.sqrt(q[0]*q[0]+q[1]*q[1]+q[2]*q[2])
+        angle = 2*math.atan2(len,q[3])
+        if len > 0:
+            axis = (q[0], q[1], q[2])/len
+        else:
+            axis = (1,0,0)
+        w = tf.transformations.unit_vector(axis*angle/(IMUTimes[i][j+1]-IMUTimes[i][j]))
+        r = initstates[IMUs[i][0]]
+        v = numpy.cross(-w, r)
+        wwedge = numpy.array([0, -w[2], w[1]], [w[2], 0, -w[0]], [-w[1], w[0], 0])
+        twist = numpy.array([wwedge[0][0], wwedge[0][1], wwedge[0][2], v[0]], [wwedge[1][0], wwedge[1][1], wwedge[1][2], v[1]], [wwedge[2][0], wwedge[2][1], wwedge[2][2], v[2]], [0, 0, 0, 0])
+        expw = numpy.identity(4) + wwedge * sin(angle) + wwedge * wwedge * (1 - cos(angle))
+        exptwist = numpy.dot(expw, (numpy.identity(4)-expw)*(wwedge*v+w*w.transpose()*v*angle))
+        exptwists.append(exptwist)
