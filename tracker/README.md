@@ -148,5 +148,5 @@ _**Альтернатива запуска**_
 
 Используйте скрипт write.sh:
 
-./write.sh
+./openni_launch_script.sh
 
