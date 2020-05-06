@@ -146,7 +146,7 @@ rosrun openni_tracker openni_tracker
 
 _**Альтернатива запуска**_
 
-Используйте скрипт write.sh:
+Используйте скрипт openni_launch_script.sh:
 
 ./openni_launch_script.sh
 
