@@ -18,17 +18,18 @@ IMUs = {
     'rforearm':['right_elbow_1', 'right_hand_1'],
     'lthigh':['left_hip_1', 'left_knee_1'],
     'lleg':['left_knee_1', 'left_foot_1'],
-    'lfoot':['left_foot_1'],
+    #'lfoot':['left_foot_1'],
     'rthigh':['right_hip_1', 'right_knee_1'],
     'rleg':['right_knee_1', 'right_foot_1'],
-    'rfoot':['right_foot_1']}
+    #'rfoot':['right_foot_1']}
     
 #Readind data from sensors
 initstates = {}
 keys = []
 length = dict.fromkeys(IMUs.keys())
-del length['lfoot']
-del length['rfoot']
+for i in length:
+    if len(length[i]) == 1:
+        del length[i]
 
 desiredrot = [[-1,0,0],[0,-1,0],[0,0,-1]]
 initrots = dict.fromkeys(IMUs.keys())
@@ -69,14 +70,63 @@ for i in length:
     secondz = initstates[second][2]
     length[i] = [(firstx - secondx), (firsty - secondy), (firstz - secondz)]
 
+firstt = initstates['torso_1']
+secondrh = initstates['right_shoulder_1']
+secondlh = initstates['left_shoulder_1']
+secondrl = initstates['right_hip_1']
+secondll = initstates['left_hip_1']
+length['rshoulder'] = [(firstt[0] - secondrh[0]), (firstt[1] - secondrh[1]), (firstt[2] - secondrh[2])]
+length['lshoulder'] = [(firstt[0] - secondlh[0]), (firstt[1] - secondlh[1]), (firstt[2] - secondlh[2])]
+length['rhip'] = [(firstt[0] - secondrl[0]), (firstt[1] - secondrl[1]), (firstt[2] - secondrl[2])]
+length['lhip'] = [(firstt[0] - secondll[0]), (firstt[1] - secondll[1]), (firstt[2] - secondll[2])]
+
 #Нужно экспортировать отсюда length, initrots, IMUs, initstates, и все, что ниже, закинуть в другой файл
 IMUQuats = dict.fromkeys(IMUs.keys())
 IMURots = dict.fromkeys(IMUs.keys())
 IMUTimes = dict.fromkeys(IMUs.keys())
 exptwists = dict.fromkeys(IMUs.keys())
 
-#Сделать иерархию, как граф с весами, и матрицы начальных состоятий относительно друг друга
+T = {
+    'neck_1':length['tors'],
+    'head_1':(length['neck']+length['tors']),
+    'right_shoulder_1':length['rshoulder'],
+    'right_elbow_1':(length['rarm']+length['rshoulder']),
+    'right_hand_1':(length['rforearm']+length['rarm']+length['rshoulder']),
+    'left_shoulder_1':length['lshoulder'],
+    'left_elbow_1':(length['larm']+length['lshoulder']),
+    'left_hand_1':(length['lforearm']+length['larm']+length['lshoulder']),
+    'right_hip_1':length['rhip'],
+    'right_knee_1':(length['rhip']+length['rthigh']),
+    'right_foot_1':(length['rhip']+length['rthigh']+length['rleg']),
+    'left_hip_1':length['lhip'],
+    'left_knee_1':(length['lhip']+length['lthigh']),
+    'left_foot_1':(length['lhip']+length['lthigh']+length['lleg'])
+}
 
+M = dict.fromkeys(T.keys())
+for i in T:
+    P = numpy.identity(4);
+    P[0][3] = T[i][0]
+    P[1][3] = T[i][1]
+    P[2][3] = T[i][2]
+    M[i] = P
+joints = {
+    'neck_1':['tors', 'neck'],
+    'head_1':['tors', 'neck'],
+    'right_shoulder_1':['tors', 'rarm'],
+    'right_elbow_1':['tors', 'rarm', 'rforearm'],
+    'right_hand_1':['tors', 'rarm', 'rforearm'],
+    'left_shoulder_1':['tors', 'larm'],
+    'left_elbow_1':['tors', 'larm', 'lforearm'],
+    'left_hand_1':['tors', 'larm', 'lforearm'],
+    'right_hip_1':['tors', 'rthigh'],
+    'right_knee_1':['tors', 'rthigh', 'rleg'],
+    'right_foot_1':['tors', 'rthigh', 'rleg'],
+    'left_hip_1':['tors', 'lthigh'],
+    'left_knee_1':['tors', 'lthigh', 'lleg'],
+    'left_foot_1':['tors', 'lthigh', 'lleg']
+}
+kinematics = dict.fromkeys(joints.keys())
 for i in IMUs:
     IMU=[]
     with open((i + '.txt'),'r') as f:
@@ -115,6 +165,15 @@ for i in IMUs:
         v = numpy.cross(-w, r)
         wwedge = numpy.array([0, -w[2], w[1]], [w[2], 0, -w[0]], [-w[1], w[0], 0])
         twist = numpy.array([wwedge[0][0], wwedge[0][1], wwedge[0][2], v[0]], [wwedge[1][0], wwedge[1][1], wwedge[1][2], v[1]], [wwedge[2][0], wwedge[2][1], wwedge[2][2], v[2]], [0, 0, 0, 0])
-        expw = numpy.identity(4) + wwedge * sin(angle) + wwedge * wwedge * (1 - cos(angle))
-        exptwist = numpy.dot(expw, (numpy.identity(4)-expw)*(wwedge*v+w*w.transpose()*v*angle))
+        expw = numpy.identity(4) + wwedge * sin(angle) + numpy.dot(wwedge, wwedge) * (1 - cos(angle))
+        exptwist = numpy.dot(expw, numpy.dot((numpy.identity(4)-expw),(numpy.dot(wwedge,v)+numpy.dot(numpy.dot(w,w.transpose()),v)*angle)))
         exptwists.append(exptwist)
+tor = len(exptwisits['tors']) 
+
+for joint in kinematics:
+    kinematics[joint] = []
+    for i in range(tor):
+        trans = numpy.identity(4)
+        for j in joints[joint]:
+            trans = numpy.dot(trans, exptwists[j][i])
+        kinematics[joint][i] = numpy.dot(trans, M[joint])
