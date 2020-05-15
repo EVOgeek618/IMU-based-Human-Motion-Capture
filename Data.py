@@ -26,9 +26,9 @@ def data(way1):
     initstates = {}
     keys = []
     length = dict.fromkeys(IMUs.keys())
-    ''' for i in length:
+    for i in length:
         if len(length[i]) == 1:
-            del length[i]'''
+            del length[i]
 
     desiredrot = [[-1, 0, 0], [0, -1, 0], [0, 0, -1]]
     initrots = dict.fromkeys(IMUs.keys())
