@@ -1,9 +1,12 @@
 import numpy,tf
 def data(way1):
-    lis = []
-    f = open(way1, 'r')
-    lis = f.readlines()
-    f.close()
+    lis=[]
+    with open(way1,'r') as f:
+        lis=f.readlines()
+        for i in range(len(lis)):
+            if lis[i].find("child_frame_id") != -1:
+                nsec = lis[i-2].split(' ')[-1]
+                f.append("{}, {}, {}, {}, {}, {}, {}, {}.{}, {} \n".format(lis[i+7][11:-1],lis[i+8][11:-1],lis[i+9][11:-1],lis[i+10][11:-1],lis[i+3][11:-1],lis[i+4][11:-1],lis[i+5][11:-1], lis[i-3][14:-1], nsec[:-1], lis[i][20:-1]))
 
     lis0 = lis[0].split(', ')
     intime = float(lis0[7])
