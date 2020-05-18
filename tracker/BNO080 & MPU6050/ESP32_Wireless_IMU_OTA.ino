@@ -180,7 +180,7 @@ void loop() {
         String quatK = String(myIMU.getQuatK(), 4);
         String quatReal = String(myIMU.getQuatReal(), 4);
         String quatRadianAccuracy = String(myIMU.getQuatRadianAccuracy(), 4);
-        String BNO_DATA = String("BNO080 "+ quatI + ", " + quatJ + ", " + quatK + ", " + quatReal);
+        String BNO_DATA = String("BNO080, "+ quatI + ", " + quatJ + ", " + quatK + ", " + quatReal);
 //        client.println("I:  " + quatI);
 //        client.println("J:  " + quatJ);
 //        client.println("K:  " + quatK);
