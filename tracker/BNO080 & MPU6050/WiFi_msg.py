@@ -6,8 +6,8 @@ import socket
 import time
 from std_msgs.msg import String
 
-BNO = open('BNO080', 'w')
-MPU = open('MPU6050', 'w')
+BNO = open('BNO080.txt', 'w')
+MPU = open('MPU6050.txt', 'w')
 
 s = socket.socket()         
  
