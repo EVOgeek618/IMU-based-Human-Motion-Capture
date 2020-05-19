@@ -21,7 +21,7 @@ initstates = {}
 keys = []
 length = dict.fromkeys(IMUs.keys())
 time = []
-desiredrot = numpy.array(((-1,0,0,0),(0,-1,0,0),(0,0,-1,0),(0,0,0,1)), dtype=numpy.float64)
+desiredrot = numpy.array(((-1,0,0,0),(0,1,0,0),(0,0,-1,0),(0,0,0,1)), dtype=numpy.float64)
 initrots = dict.fromkeys(IMUs.keys())
 for i in IMUs:
     IMU=[]
