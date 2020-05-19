@@ -175,19 +175,24 @@ void loop() {
   Serial.println("Connected to server successful!");
   
   if (myIMU.dataAvailable() == true){
+//        WiFiClient client;
+//        client.connect(host, port);
         String quatI = String(myIMU.getQuatI(), 4);
         String quatJ = String(myIMU.getQuatJ(), 4);
         String quatK = String(myIMU.getQuatK(), 4);
         String quatReal = String(myIMU.getQuatReal(), 4);
         String quatRadianAccuracy = String(myIMU.getQuatRadianAccuracy(), 4);
-        String BNO_DATA = String("BNO080, "+ quatI + ", " + quatJ + ", " + quatK + ", " + quatReal);
+        String BNO_DATA = String("#BNO080 "+ quatI + " " + quatJ + " " + quatK + " " + quatReal+ " ;");
+//        char* bno_data;
+//        BNO_DATA.toCharArray(bno_data, 64);
 //        client.println("I:  " + quatI);
 //        client.println("J:  " + quatJ);
 //        client.println("K:  " + quatK);
 //        client.println("W:  " + quatReal);
 //        client.println("Acc:  " + quatRadianAccuracy);
+//          client.write(bno_data, 64);
           client.println(BNO_DATA);
-//        client.stop();
+//          client.stop();
 //          delay(50);
     }
   
@@ -212,6 +217,8 @@ void loop() {
 
     // otherwise, check for DMP data ready interrupt (this should happen frequently)
   } else if (mpuIntStatus & 0x02) {
+//    WiFiClient client;
+//    client.connect(host, port);
     // wait for correct available data length, should be a VERY short wait
     while (fifoCount < packetSize) fifoCount = mpu.getFIFOCount();
 
@@ -228,10 +235,17 @@ void loop() {
     String quatJ = String(q.y, 4);
     String quatK = String(q.z, 4);
     String quatReal = String(q.w, 4);
-    String MPU_DATA = String("MPU6050, "+ quatI + ", " + quatJ + ", " + quatK + ", " + quatReal);
+    String MPU_DATA = String("#MPU6050 "+ quatI + " " + quatJ + " " + quatK + " " + quatReal+ " ;");
+ //   char* mpu_data;
+//    MPU_DATA.toCharArray(mpu_data, 64);
+//    client.write(mpu_data, 64);
     client.println(MPU_DATA);
+//    client.stop();
   }
-  
-  delay(50);
+
+//  client.println(BNO_DATA);
+//  client.println(MPU_DATA);
+//  client.stop();
+  delay(10);
 
 }
