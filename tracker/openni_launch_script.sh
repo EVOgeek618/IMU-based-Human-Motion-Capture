@@ -7,6 +7,10 @@
      (больше на       http://wiki.ros.org/rosbag/Commandline)
 comment
 
+#cd ~/Project/Workspace
+#source devel/setup.bash
+#catkin_make
+
 #gnome-terminal --tab -e "command1" --tab -e "command2
 
 gnome-terminal
