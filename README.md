@@ -13,3 +13,6 @@ https://www.researchgate.net/publication/259779746_Method_to_Calibrate_the_Skele
 
 Харктеристики датчика BNO080, использовуемого в работе:
 https://cdn.sparkfun.com/assets/1/3/4/5/9/BNO080_Datasheet_v1.3.pdf
+
+![](images/Shoulder.jpg)
+![](images/Elbow.jpg)
