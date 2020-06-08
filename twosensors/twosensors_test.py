@@ -4,8 +4,8 @@
 # 1. Find lehgths of body parts according to the data taken from Kinect				DONE
 #	a) get rid of extra data from Kinect in the beginning					DONE
 # 2. Turn the sensors in their initial conditions by finding transformation matrices		DONE	
-# 3. Publisher tf for visualizing data in rviz
-#	a) Solve the issue of time equality for sensors
+# 3. Publisher tf for visualizing data in rviz							DONE
+#	a) Solve the issue of time equality for sensors						DONE
 
 import roslib
 import rospy 
@@ -90,19 +90,24 @@ if __name__ == '__main__':
 		R_Arm_Desired_rot = numpy.array(((-1,0,0,0),(0,1,0,0),(0,0,-1,0),(0,0,0,1)), dtype=numpy.float64)
 		R_ForeArm_Desired_rot = numpy.array(((1,0,0,0),(0,1,0,0),(0,0,1,0),(0,0,0,1)), dtype=numpy.float64)
 		
-		for i in range(min(len(R_Arm_rot),len(R_ForeArm_rot))):
+		i = 0
+		k = 0
+#		for i in range(min(len(R_Arm_rot),len(R_ForeArm_rot))):
+		while i <= len(R_Arm_rot):
 
 			# Right Arm Data
-			R_Arm_data = R_Arm_rot[i].split(" ")[1:5]
+			R_Arm_data = R_Arm_rot[i].split(" ")[1:]
 			R_Arm_fact_quat = (float(R_Arm_data[0]), float(R_Arm_data[1]), float(R_Arm_data[2]), float(R_Arm_data[3]))
 			R_Arm_fact_matrix = tf.transformations.quaternion_matrix(R_Arm_fact_quat)
+			R_Arm_time = float(R_Arm_data[-1])
 
 			# Right Forearm Data
-			R_ForeArm_data = R_ForeArm_rot[i].split(" ")[1:5]
+			R_ForeArm_data = R_ForeArm_rot[k].split(" ")[1:]
 			R_ForeArm_fact_quat = (float(R_ForeArm_data[0]), float(R_ForeArm_data[1]), float(R_ForeArm_data[2]), float(R_ForeArm_data[3]))
 			R_ForeArm_fact_matrix = tf.transformations.quaternion_matrix(R_ForeArm_fact_quat)
 
 			R_ForeArm_relative_matrix = numpy.dot( numpy.linalg.inv(R_Arm_fact_matrix), R_ForeArm_fact_matrix)
+			R_ForeArm_time = float(R_ForeArm_data[-1])
 
 			if i == 0:
 				# Finding the initial rotation matrices
@@ -144,7 +149,10 @@ if __name__ == '__main__':
 
 				#R_ForeArm_init_desired_matrix = numpy.dot(R_ForeArm_init_relative_matrix, R_ForeArm_init_desired_rot)
 				#print("R_ForeArm_init_desired_matrix = ",R_ForeArm_init_desired_matrix)
-
+			
+			if (R_ForeArm_time < R_Arm_time):
+				while float(R_Arm_rot[i].split(" ")[1:][-1]) > float(R_ForeArm_rot[k].split(" ")[1:][-1]):
+					k = k + 1
 
         		R_Arm_desired_matrix = numpy.dot(R_Arm_fact_matrix, R_Arm_init_desired_rot)
 			R_Arm_desired_quat = tf.transformations.quaternion_from_matrix(R_Arm_desired_matrix)
@@ -167,30 +175,9 @@ if __name__ == '__main__':
 			#br.sendTransform((0, 0, R_ForeArm_len), (0, 0, 0, 1), rospy.Time.now(), "Hand", "Elbow")
 			br.sendTransform((-V_ForeArm[2], V_ForeArm[1], V_ForeArm[0]), (0, 0, 0, 1), rospy.Time.now(), "Hand", "Elbow")
 			#br.sendTransform((V_ForeArm[0], V_ForeArm[1], V_ForeArm[2]), (0, 0, 0, 1), rospy.Time.now(), "Hand", "Elbow")
-			
+
+			i = i + 1
 			rate.sleep()
-		#for line in R_Arm_rot:
-			#data = line.split(" ")[1:5]
-			#fact_quat = (float(data[0]), float(data[1]), float(data[2]), float(data[3]))
-			#print(quat)
-			#R_Arm_fact_matrix = tf.transformations.quaternion_matrix(fact_quat)
-        		#R_Arm_desired_matrix = numpy.dot(R_Arm_fact_matrix, R_Arm_init_desired_rot)
-			#R_Arm_desired_quat = tf.transformations.quaternion_from_matrix(R_Arm_desired_matrix)
-			#br.sendTransform((0, 0, 0), R_Arm_desired_quat, rospy.Time.now(), "Shoulder", "map")
-			#br.sendTransform((R_Arm_len, 0, 0), (0, 0, 1, 0), rospy.Time.now(), "Elbow", "Shoulder")
-			#br.sendTransform((R_ForeArm_len, 0, 0), (1, 0, 0, 0), rospy.Time.now(), "Hand", "Elbow")
-			#rate.sleep()
 
-		#for line in R_ForeArm_rot:
-			#data = line.split(" ")[1:5]
-			#fact_quat = (float(data[0]), float(data[1]), float(data[2]), float(data[3]))
-			#print(quat)
-			#R_ForeArm_fact_matrix = tf.transformations.quaternion_matrix(fact_quat)
-        		#R_ForeArm_desired_matrix = numpy.dot(R_ForeArm_fact_matrix, R_ForeArm_init_desired_rot)
-			#R_ForeArm_desired_quat = tf.transformations.quaternion_from_matrix(R_ForeArm_desired_matrix)
-			#br.sendTransform((0, 0, 0), R_ForeArm_desired_quat, rospy.Time.now(), "Elbow", "map")
-			#br.sendTransform((R_Arm_len, 0, 0), (0, 0, 1, 0), rospy.Time.now(), "Elbow", "Shoulder")
-			#rate.sleep()
-
-	except rospy.ROSInterruptException:
-			pass
+	except (rospy.ROSInterruptException):
+		pass
