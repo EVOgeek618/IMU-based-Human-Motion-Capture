@@ -4,8 +4,6 @@ import rospy
 import tf
 import numpy
 import math
-import rviz_tools_py as rviz_tools
-markers = rviz_tools.RvizMarkers('/map', 'visualization_marker')
 
 #Reading data from Kinect
 lis=[]
@@ -13,25 +11,49 @@ f = open('DataKinect.txt', 'r')
 lis=f.readlines()
 f.close()
 
+#Initial dictionaries and lists
 IMUs = {
     'rarm':['left_shoulder_1', 'left_elbow_1'],
     'rforearm':['left_elbow_1', 'left_hand_1'],
 }
+length = dict.fromkeys(IMUs.keys())
+initrots = dict.fromkeys(IMUs.keys())
+
+IMURots = dict.fromkeys(IMUs.keys())
+IMUTimes = dict.fromkeys(IMUs.keys())
+IMUTs = dict.fromkeys(IMUs.keys())
+IMURraw = dict.fromkeys(IMUs.keys())
+
 lIMU = ['rarm', 'rforearm']
-#Readind data from sensors
 initstates = {}
 keys = []
-length = dict.fromkeys(IMUs.keys())
 time = []
+
+jointstoIMU = {
+    'left_shoulder_1':'rarm',
+    'left_elbow_1':'rforearm',
+    'left_hand_1':'none',
+}
+prjoint = {
+	'left_shoulder_1':'none',
+	'left_elbow_1':'left_shoulder_1',
+	'left_hand_1':'left_elbow_1'
+}
+joints = {
+	'left_shoulder_1':['left_shoulder_1'],
+	'left_elbow_1':['left_shoulder_1', 'left_elbow_1'],
+	'left_hand_1':['left_shoulder_1', 'left_elbow_1', 'left_hand_1'],
+}
+kinematics = dict.fromkeys(joints.keys())
+exptwists = dict.fromkeys(joints.keys())
+
+#Finding initial positions and rotations
 desiredrot = numpy.array(((-1,0,0,0),(0,1,0,0),(0,0,-1,0),(0,0,0,1)), dtype=numpy.float64)
-initrots = dict.fromkeys(IMUs.keys())
 for i in IMUs:
     IMU=[]
     f = open((i + '.txt'),'r')
     IMU=f.readlines()
     f.close()
-    print(i)
-    print(len(IMU))
     if i == 'rarm':
         tor = len(IMU)
     for frame in IMUs[i]:
@@ -69,11 +91,6 @@ for i in length:
     length[i] = numpy.array(((firstx - secondx), (firsty - secondy), (firstz - secondz)))
 intime = float(min(time))
 
-IMURots = dict.fromkeys(IMUs.keys())
-IMUTimes = dict.fromkeys(IMUs.keys())
-IMUTs = dict.fromkeys(IMUs.keys())
-IMURraw = dict.fromkeys(IMUs.keys())
-
 T = {
     'left_shoulder_1': numpy.array((0, 0, 0)),
     'left_elbow_1':length['rarm'],
@@ -88,24 +105,6 @@ for i in T:
     P[2][3] = T[i][2]
     M[i] = P
 
-jointstoIMU = {
-    'left_shoulder_1':'rarm',
-    'left_elbow_1':'rforearm',
-    'left_hand_1':'none',
-}
-prjoint = {
-	'left_shoulder_1':'none',
-	'left_elbow_1':'left_shoulder_1',
-	'left_hand_1':'left_elbow_1'
-}
-joints = {
-	'left_shoulder_1':['left_shoulder_1'],
-	'left_elbow_1':['left_shoulder_1', 'left_elbow_1'],
-	'left_hand_1':['left_shoulder_1', 'left_elbow_1', 'left_hand_1'],
-}
-kinematics = dict.fromkeys(joints.keys())
-exptwists = dict.fromkeys(joints.keys())
-
 for i in lIMU:
     IMU=[]
     f = open((i + '.txt'),'r')
@@ -116,6 +115,7 @@ for i in lIMU:
     IMUTs[i] = []
     IMURraw[i] = []
 
+#Synchronizing data from two sensors
 k=0
 IMUarm = []
 f = open('rarm.txt','r')
@@ -123,7 +123,6 @@ IMUarm=f.readlines()
 f.close()
 for i in range(len(IMUarm)):
     IMUarm[i] =IMUarm[i].split(' ')
-
 IMUforearmold = []
 f = open('rforearm.txt','r')
 IMUforearmold=f.readlines()
@@ -143,6 +142,7 @@ for i in range(tor):
     
 IMUlines = [IMUarm, IMUforearm]
 
+#Reading data from IMU
 for i in IMUlines:
     if i == IMUlines[0]:
         im = 'rarm'
@@ -162,7 +162,6 @@ for i in IMUlines:
         else:
             Rdiff = RIMU
         R = numpy.dot(Rdiff, initrots[im])
-        #Time
         time = float(line[-1]) - intime
         t = rospy.Time.from_sec(time)
         IMURots[im].append(R)
@@ -170,6 +169,7 @@ for i in IMUlines:
         IMUTs[im].append(time)
         IMURraw[im].append(RIMU)
 
+#Calculating exponential twist
 for i in joints:
 	exptwists[i] = []
 	im = jointstoIMU[i]
@@ -177,15 +177,10 @@ for i in joints:
 	if im != 'none':
 		for j in range(len(IMURots[im])):
 			q1 = tf.transformations.quaternion_from_matrix(IMURots[im][0])
-			#print(q1)
 			q2 = tf.transformations.quaternion_from_matrix(IMURots[im][j])
-			#print(q2)
 			q = tf.transformations.quaternion_multiply(q2,tf.transformations.quaternion_conjugate(q1))
-			#print(q)
 			leng = math.sqrt(q[0]*q[0]+q[1]*q[1]+q[2]*q[2])
-			#print(leng)
 			angle = 2*math.atan2(leng,q[3])
-			#print(angle)
 			if leng > 10**(-10):
 				axis = numpy.array((q[0]/leng, q[1]/leng, q[2]/leng))
 			else:
@@ -200,7 +195,6 @@ for joint in jointorder:
     kinematics[joint] = []
 
 if __name__ == '__main__':
-    #Broadcasting to rviz
     rospy.init_node('test', anonymous=False, log_level=rospy.INFO, disable_signals=False)
     rate = rospy.Rate(20)
     br = tf.TransformBroadcaster()
@@ -209,6 +203,7 @@ if __name__ == '__main__':
         for i in range(tor):
             if i == 0:
                 print('Beginning the last math part')
+	#Calculating transformation marix for every joint
             for joint in jointorder:
                 trans = numpy.identity(3)
                 for j in joints[joint]:
@@ -243,16 +238,11 @@ if __name__ == '__main__':
                     kinem[:3,3] = numpy.dot(expmap, inst[:,3])[:3]
                     kinem[:3,:3] = IMURots['rarm'][i][:3,:3]
                 kinematics[joint].append(kinem)
-                print(math.sqrt(kinematics[joint][i][0,3]*kinematics[joint][i][0,3] + kinematics[joint][i][1,3]*kinematics[joint][i][1,3] + kinematics[joint][i][2,3]*kinematics[joint][i][2,3]))
+            #Broacasting to rviz
             br.sendTransform(kinematics['left_shoulder_1'][i][:3, 3], tf.transformations.quaternion_from_matrix(kinematics['left_shoulder_1'][i]), rospy.Time.now(), 'right_shoulder', 'map')
             br.sendTransform(kinematics['left_elbow_1'][i][:3, 3], tf.transformations.quaternion_from_matrix(kinematics['left_elbow_1'][i]), rospy.Time.now(), 'right_elbow', 'map')
             br.sendTransform(kinematics['left_hand_1'][i][:3,3], tf.transformations.quaternion_from_matrix(kinematics['left_hand_1'][i]), rospy.Time.now(), 'right_hand', 'map')
-
-            markers.publishLine(tf.transformations.translation_matrix(kinematics['left_shoulder_1'][i][:3, 3]), tf.transformations.translation_matrix(kinematics['left_elbow_1'][i][:3,3]), 'blue', 0.01, 0.05)
-            markers.publishLine(tf.transformations.translation_matrix(kinematics['left_elbow_1'][i][:3,3]), tf.transformations.translation_matrix(kinematics['left_hand_1'][i][:3,3]), 'red', 0.01, 0.05)
-
             rate.sleep()
-            markers.deleteAllMarkers()
     except rospy.ROSInterruptException:
         pass
 	
