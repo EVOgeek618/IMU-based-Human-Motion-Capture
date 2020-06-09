@@ -5,6 +5,8 @@ import tf
 import numpy
 import math
 
+rospy.init_node('test', anonymous=False, log_level=rospy.INFO, disable_signals=False)
+starttime = rospy.Time.now()
 #Reading data from Kinect
 lis=[]
 f = open('DataKinect.txt', 'r')
@@ -195,7 +197,6 @@ for joint in jointorder:
     kinematics[joint] = []
 
 if __name__ == '__main__':
-    rospy.init_node('test', anonymous=False, log_level=rospy.INFO, disable_signals=False)
     rate = rospy.Rate(20)
     br = tf.TransformBroadcaster()
     print('Beginning of broadcasting')
@@ -243,6 +244,8 @@ if __name__ == '__main__':
             br.sendTransform(kinematics['left_elbow_1'][i][:3, 3], tf.transformations.quaternion_from_matrix(kinematics['left_elbow_1'][i]), rospy.Time.now(), 'right_elbow', 'map')
             br.sendTransform(kinematics['left_hand_1'][i][:3,3], tf.transformations.quaternion_from_matrix(kinematics['left_hand_1'][i]), rospy.Time.now(), 'right_hand', 'map')
             rate.sleep()
+	endtime = rospy.Time.now()
+	print(starttime-endtime)
     except rospy.ROSInterruptException:
         pass
 	
