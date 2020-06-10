@@ -245,7 +245,7 @@ if __name__ == '__main__':
             br.sendTransform(kinematics['left_hand_1'][i][:3,3], tf.transformations.quaternion_from_matrix(kinematics['left_hand_1'][i]), rospy.Time.now(), 'right_hand', 'map')
             rate.sleep()
 	endtime = rospy.Time.now()
-	print(starttime-endtime)
+	print(endtime-starttime)
     except rospy.ROSInterruptException:
         pass
 	
