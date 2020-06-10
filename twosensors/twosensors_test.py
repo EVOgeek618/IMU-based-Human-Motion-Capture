@@ -16,6 +16,12 @@ from std_msgs.msg import String
 
 if __name__ == '__main__':
 	try:
+		rospy.init_node('test', anonymous=False, log_level=rospy.INFO, disable_signals=False)
+		rate = rospy.Rate(20)
+		br = tf.TransformBroadcaster()
+
+		start = rospy.Time.now()
+
 		# Reading Kinect data from file
 		Kinect = []
 		f = open('DataKinect.txt', 'r')
@@ -81,11 +87,6 @@ if __name__ == '__main__':
 		V_ForeArm = ((V_Elbow[0]-V_Hand[0]), (V_Elbow[1]-V_Hand[1]), (V_Elbow[2]-V_Hand[2]))
 
 
-		#Broadcasting to rviz
-		rospy.init_node('test', anonymous=False, log_level=rospy.INFO, disable_signals=False)
-		rate = rospy.Rate(20)
-		br = tf.TransformBroadcaster()
-
 		#Desired initial rotations of Sensors
 		R_Arm_Desired_rot = numpy.array(((-1,0,0,0),(0,1,0,0),(0,0,-1,0),(0,0,0,1)), dtype=numpy.float64)
 		R_ForeArm_Desired_rot = numpy.array(((1,0,0,0),(0,1,0,0),(0,0,1,0),(0,0,0,1)), dtype=numpy.float64)
@@ -93,7 +94,7 @@ if __name__ == '__main__':
 		i = 0
 		k = 0
 #		for i in range(min(len(R_Arm_rot),len(R_ForeArm_rot))):
-		while i <= len(R_Arm_rot):
+		while i < len(R_Arm_rot):
 
 			# Right Arm Data
 			R_Arm_data = R_Arm_rot[i].split(" ")[1:]
@@ -152,6 +153,7 @@ if __name__ == '__main__':
 			
 			if (R_ForeArm_time < R_Arm_time):
 				while float(R_Arm_rot[i].split(" ")[1:][-1]) > float(R_ForeArm_rot[k].split(" ")[1:][-1]):
+					if k == len(R_ForeArm_rot): break
 					k = k + 1
 
         		R_Arm_desired_matrix = numpy.dot(R_Arm_fact_matrix, R_Arm_init_desired_rot)
@@ -181,3 +183,8 @@ if __name__ == '__main__':
 
 	except (rospy.ROSInterruptException):
 		pass
+
+end = rospy.Time.now()
+#Time_total = (end - start)/1000000000
+Time_total = (end - start)
+print("Time_total: "+ str(Time_total)+" nanosec")
